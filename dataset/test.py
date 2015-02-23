@@ -1,13 +1,13 @@
 import unittest as ut
-from dataset import PyDicomDataset
+from dataset import DicomDataset
 
 home_folder = '/home/volkse/Projects/dicom_manager/test_dicom'
 test_sequence = '/home/volkse/Projects/dicom_manager/test_dicom/Axial Dual SE 1 AV - 6/DICOM'
 
-class PyDicomDatasetTest(ut.TestCase):
+class DicomDatasetTest(ut.TestCase):
 
     def setUp(self):
-        self.app = PyDicomDataset(home_folder)
+        self.app = DicomDataset(home_folder)
         self.app.get_seq_list()
         self.seq_dir = test_sequence
     

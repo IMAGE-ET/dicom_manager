@@ -3,7 +3,7 @@ import os
 import sys
 import dicom
 
-class PyDicomDataset(object):
+class DicomDataset(object):
     def __init__(self, dir=''):
         self.main_dir = dir
         self.seq_list = dict()
@@ -27,6 +27,7 @@ class PyDicomDataset(object):
                             del files[files.index(f)]
                     except:
                         del files[files.index(f)]
+            if len(files) != 0:
                 self.seq_list[root] = files
 
     def make_sequence(self, root):
