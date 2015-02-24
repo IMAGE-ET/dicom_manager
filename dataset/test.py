@@ -1,9 +1,8 @@
 import unittest as ut
 from dataset import DicomDataset
 
-home_folder = '/Users/mrilab/Desktop/TEST-ss*&#T$ 2347*&#$   ss/test_dicom/'
-test_sequence = '/Users/mrilab/Desktop/TEST-ss*&#T$ 2347*&#$   ss/test_dicom/1234/Research Brain UCLA DR BARTZOKIS/Axial Dual SE 1 AV - 6/DICOM'
-
+home_folder = None
+test_sequence = None
 class DicomDatasetTest(ut.TestCase):
 
     def setUp(self):
