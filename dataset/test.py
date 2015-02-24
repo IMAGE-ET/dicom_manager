@@ -1,8 +1,8 @@
 import unittest as ut
 from dataset import DicomDataset
 
-home_folder = '/home/volkse/Projects/dicom_manager/test_dicom'
-test_sequence = '/home/volkse/Projects/dicom_manager/test_dicom/Axial Dual SE 1 AV - 6/DICOM'
+home_folder = '/Users/mrilab/Desktop/TEST-ss*&#T$ 2347*&#$   ss/test_dicom/'
+test_sequence = '/Users/mrilab/Desktop/TEST-ss*&#T$ 2347*&#$   ss/test_dicom/1234/Research Brain UCLA DR BARTZOKIS/Axial Dual SE 1 AV - 6/DICOM'
 
 class DicomDatasetTest(ut.TestCase):
 
@@ -20,6 +20,12 @@ class DicomDatasetTest(ut.TestCase):
     def test_sequence_items_are_pydicom_datasets(self):
         sequence = self.app.make_sequence(self.seq_dir)
         self.assertEqual(sequence.info('PatientID'), str(1625))
+        
+    def test_sequence_split_by_echo_time_works(self):
+    	sequence = self.app.make_sequence(self.seq_dir)
+    	print type(sequence)
+    	sequence.split('EchoTime')
+    	self.assertEqual(len(sequence), 2)
 
 if __name__ == '__main__':
     ut.main()

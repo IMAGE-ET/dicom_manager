@@ -42,21 +42,29 @@ class DicomSequence(object):
 
         for file in self.files:
             try:
-                pydicom_dataset = dicom.read_file(os.path.join(self.path, file), stop_before_pixels=True)
-                self.sequence.append(pydicom_dataset)
+                file_path = os.path.join(self.path, file)
+                pydicom_dataset = dicom.read_file(file_path, stop_before_pixels=True)
+                self.sequence.append([pydicom_dataset, file_path])
             except dicom.filereader.InvalidDicomError:
                 continue
-        
+
+    def __iter__(self):
+        for i in [x[0] for x in self.sequence]:
+            yield i
+
+    def split(self, attribute):
+        pass
+    
     def info(self, attribute = None):    
         if attribute == None:
             print 'Use sequence.info(\'attribute\')'
             print 'Note attribute values are taken from the first file of the sequence\n and may not be the same for all images'
             print 'Here is a list of attributes you can view for this sequence:'
-            for i in self.sequence[0].dir():
+            for i in self.sequence[0][0].dir():
                 print i 
         else:
             try:
-                return getattr(self.sequence[0], attribute)
+                return getattr(self.sequence[0][0], attribute)
             except:
                 print 'Attribute not found.'
 
