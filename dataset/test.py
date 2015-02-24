@@ -1,8 +1,13 @@
+import os
 import unittest as ut
 from dataset import DicomDataset
 
-home_folder = None
-test_sequence = None
+home_folder = os.path.dirname(os.getcwd())+'/test_dicom'
+for root, dirs, files in os.walk(home_folder):
+	if len(dirs) == 0 and files[1].endswith('.dcm'):
+		test_sequence = root
+		break
+
 class DicomDatasetTest(ut.TestCase):
 
     def setUp(self):
@@ -23,6 +28,7 @@ class DicomDatasetTest(ut.TestCase):
     def test_sequence_split_by_echo_time_works(self):
     	sequence = self.app.make_sequence(self.seq_dir)
     	print type(sequence)
+    	sequence.info()
     	sequence.split('EchoTime')
     	self.assertEqual(len(sequence), 2)
 
