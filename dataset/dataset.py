@@ -54,6 +54,16 @@ class DicomSequence(object):
 
     def split(self, attribute):
         pass
+
+    def size(self):
+        if isinstance(self.sequence, list):
+            return {'block 1': len(self.sequence)}
+        elif isinstance(self.sequence, dict):
+            out_size = {'blocks': len(self.sequence)}
+            for num, block in enumerate(self.sequence):
+                out_size['block ' + str(num+1)] = len(self.sequence[block])
+            return out_size 
+
     
     def info(self, attribute = None):    
         if attribute == None:

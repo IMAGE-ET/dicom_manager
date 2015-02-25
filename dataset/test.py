@@ -24,13 +24,16 @@ class DicomDatasetTest(ut.TestCase):
     def test_sequence_items_are_pydicom_datasets(self):
         sequence = self.app.make_sequence(self.seq_dir)
         self.assertEqual(sequence.info('PatientID'), str(1625))
+    
+    def test_sequence_size_method(self):
+        sequence = self.app.make_sequence(self.seq_dir)
+        self.assertIsInstance(sequence.size(), dict)
+        self.assertEqual(sequence.size()['block 1'], 25)
         
-    def test_sequence_split_by_echo_time_works(self):
+    def test_sequence_split_by_echo_time(self):
     	sequence = self.app.make_sequence(self.seq_dir)
-    	print type(sequence)
-    	sequence.info()
     	sequence.split('EchoTime')
-    	self.assertEqual(len(sequence), 2)
+    	self.fail('Make this work!')
 
 if __name__ == '__main__':
     ut.main()
