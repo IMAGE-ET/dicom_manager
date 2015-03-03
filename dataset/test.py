@@ -28,12 +28,12 @@ class DicomDatasetTest(ut.TestCase):
     def test_sequence_size_method(self):
         sequence = self.app.make_sequence(self.seq_dir)
         self.assertIsInstance(sequence.size(), dict)
-        self.assertEqual(sequence.size()['block 1'], 25)
+        self.assertEqual(sequence.size()['main'], len(self.app.seq_list[test_sequence]))
         
     def test_sequence_split_by_echo_time(self):
     	sequence = self.app.make_sequence(self.seq_dir)
     	sequence.split('EchoTime')
-    	self.fail('Make this work!')
+    	self.assertEqual(type(sequence.ds), dict)
 
 if __name__ == '__main__':
     ut.main()
