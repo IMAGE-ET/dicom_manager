@@ -8,7 +8,6 @@ class DicomDataset(object):
         self.main_dir = dir
         self.seq_list = dict()
     
-    #resource_dir = os.path.dirname(os.path.realpath(__file__))+'/resources'
 
     def ask_for_source_dir(self):
         if len(self.main_dir) == 0:

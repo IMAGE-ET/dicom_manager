@@ -1,5 +1,6 @@
 import os
 import unittest as ut
+
 from dataset import DicomDataset
 
 home_folder = os.path.dirname(os.getcwd())+'/test_dicom'
@@ -15,11 +16,15 @@ class DicomDatasetTest(ut.TestCase):
         self.app.get_seq_list()
         self.seq_dir = test_sequence
     
-    def test_converter_assigns_main_dir_correctly(self):
+    def test_dataset_assigns_main_dir_correctly(self):
         self.assertEqual(self.app.main_dir, home_folder)
         
-    def test_converter_seq_list_not_empty(self):
+    def test_dataset_seq_list_not_empty(self):
         self.assertFalse(len(self.app.seq_list) == 0)
+   
+    def test_dataset_has_correct_number_of_files(self):
+    	number_of_files = len(self.app.seq_list[test_sequence])
+    	self.assertEqual(number_of_files, 50)
         
     def test_sequence_items_are_pydicom_datasets(self):
         sequence = self.app.make_sequence(self.seq_dir)
@@ -27,8 +32,9 @@ class DicomDatasetTest(ut.TestCase):
     
     def test_sequence_size_method(self):
         sequence = self.app.make_sequence(self.seq_dir)
+        number_of_files = len(self.app.seq_list[test_sequence])
         self.assertIsInstance(sequence.size(), dict)
-        self.assertEqual(sequence.size()['main'], len(self.app.seq_list[test_sequence]))
+        self.assertEqual(sequence.size()['main'], number_of_files)
         
     def test_sequence_split_by_echo_time(self):
     	sequence = self.app.make_sequence(self.seq_dir)
