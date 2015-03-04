@@ -93,6 +93,6 @@ class DicomSequence(object):
                 print 'Attribute not found.'
 
 if __name__ == '__main__':
-    app = ConverterApp()
+    app = DicomDataset()
     app.ask_for_source_dir()
     app.get_seq_list()

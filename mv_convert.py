@@ -1,7 +1,9 @@
+#!/usr/bin/python
 import os
 import sys
 from struct import *
-from dataset.dataset import DicomDataset
+from distutils.util import strtobool
+from dataset import DicomDataset
 
 """
 MedVision file structure is as follows:
@@ -17,14 +19,43 @@ MedVision file structure is as follows:
 	-etc.	
 """
 
-mv_head_1 = 'MVSTUDY \x00\x00\x00x\x00\x00\x00\x18\'
+mv_head_1 = 'MVSTUDY \x00\x00\x00x\x00\x00\x00\x18'
 mv_head_2 = '\x00\n\x00\x00\x00\x00'
 sl_head_part_8bit = ' \x01'
 sl_head_part_16bit = '\x10\x02'
 two_zeros = '\x00\x00'
 
-data = DicomDataset()
-data.get_seq_list()
+def convert(data, sequence_path, do_all, interp = True):
+    sequence = data.make_sequence(sequence_path)
+    print "\n............................................................"
+    print 'Subject ID            : ' + str(sequence.info("PatientName"))
+    print 'Sequence Number       : ' + str(sequence.info("SeriesNumber"))
+    print 'Sequence Description  : ' + str(sequence.info("SeriesDescription"))
+    size = str(sequence.info('Rows')) + 'x' + str(sequence.info('Columns'))
+    print 'Image Size (Rows/Cols): ' + size
+    base_name = raw_input("Enter base name for MV file. ")
+    
+
+def user_yes_no_query(question):
+    sys.stdout.write('%s [y/n] ' % question)
+    while True:
+        try:
+            return strtobool(raw_input().lower())
+        except ValueError:
+            sys.stdout.write('Please respond with \'y\' or \'n\'. ')
+
+if __name__ == '__main__':
+
+    data = DicomDataset()
+    data.ask_for_source_dir()
+    data.get_seq_list()
+    
+    print "\n............................................................"
+    print "Found {0} sequence(s).".format(len(data.seq_list))
+    do_all = user_yes_no_query("Convert all?")
+    
+    for sequence_path in data.seq_list:
+        convert(data, sequence_path, do_all)
 
 
-
+        
