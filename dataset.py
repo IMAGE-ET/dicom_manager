@@ -18,11 +18,11 @@ class DicomDataset(object):
     def get_seq_list(self):
         for root, dirs, files in os.walk(self.main_dir):
             if len(files) != 0:
-				for f in files:
-					if open(os.path.join(root, f)).read()[128:132] == 'DICM':
-						continue
-					else:
-						del files[files.index(f)]
+                for f in files:
+                    if open(os.path.join(root, f)).read()[128:132] == 'DICM':
+                        continue
+                    else:
+                        del files[files.index(f)]
             
             if len(files) != 0:
                 self.seq_list[root] = files
@@ -36,7 +36,8 @@ class DicomSequence(object):
         self.path = root
         self.files = files
         self.ds = list()
-        self.is_split = False
+        self.is_split = [False]
+        self.split_ds = dict()
 
         for file in self.files:
             try:
@@ -51,46 +52,52 @@ class DicomSequence(object):
             yield i
 
     def split(self, attribute):
-    	split_ds = dict()
-    	known_attribute_values = list()
+        split_ds = dict()
+        known_attribute_values = list()
         for ds in self.ds:
-        	try:
-        		attribute_value = getattr(ds[0], attribute) 
-        		if attribute_value not in known_attribute_values:
-       				known_attribute_values.append(attribute_value)
-       				split_ds[attribute+'='+str(attribute_value)] = [ds]
-       			elif attribute_value in known_attribute_values:
-       				split_ds[attribute+'='+str(attribute_value)].append(ds)
-        	except:
-        		print 'Attribute not found'
-        		print 'Split failed!'
-        		break
-        		return
-        		
-		self.ds = split_ds
-        self.is_split = True
+            try:
+                attribute_value = getattr(ds[0], attribute) 
+                if attribute_value not in known_attribute_values:
+                       known_attribute_values.append(attribute_value)
+                       split_ds[attribute+'='+str(attribute_value)] = [ds]
+                elif attribute_value in known_attribute_values:
+                       split_ds[attribute+'='+str(attribute_value)].append(ds)
+            except:
+                print 'Attribute not found'
+                print 'Split failed!'
+                break
+                return
+                
+        self.split_ds = split_ds
+        self.is_split[0] = True
+        self.is_split.append(attribute)
         
     def size(self):
-        if isinstance(self.ds, list):
+        if not self.is_split[0]:
             return {'main': len(self.ds)}
-        elif isinstance(self.ds, dict):
-            out_size = {'blocks': len(self.ds)}
-            for block in self.ds:
-                out_size[block] = len(self.ds[block])
+        elif self.is_split[0]:
+            out_size = dict()
+            for block in self.split_ds:
+                out_size[block] = len(self.split_ds[block])
             return out_size 
 
-    def info(self, attribute = None):    
-        if attribute == None:
+    def info(self, attribute = None, tag=[]):    
+        if attribute == None and len(tag) == 0:
             print 'Use sequence.info(\'attribute\')'
             print 'Note attribute values are taken from the first file of the sequence\n and may not be the same for all images'
             print 'Here is a list of attributes you can view for this sequence:'
             for i in self.ds[0][0].dir():
-                print i 
+                print i        
+        elif attribute == None and len(tag) == 2:
+            try:
+                return self.ds[0][0][tag[0], tag[1]].value
+            except:
+                print 'Invalid attribute.'
         else:
             try:
                 return getattr(self.ds[0][0], attribute)
             except:
-                print 'Attribute not found.'
+                print 'Invalid attribute.'
 
 if __name__ == '__main__':
     app = DicomDataset()
