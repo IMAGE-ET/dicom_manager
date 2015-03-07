@@ -38,14 +38,13 @@ def convert(data, sequence_path, do_all, interp = True):
     print 'Sequence Number       : '  + str(sequence.info('SeriesNumber'))
     print 'Sequence Description  : '  + str(sequence.info('SeriesDescription'))
     print 'Sequence Type         : '  + str(sequence.info('ScanningSequence'))
-    size = str(sequence.info('Rows')) + 'x' + str(sequence.info('Columns'))
-    print 'Image Size (Rows/Cols): '  + size
+    image_size = str(sequence.info('Rows')) + 'x' + str(sequence.info('Columns'))
+    print 'Image Size (Rows/Cols): '  + image_size
     print 'Number of Slices      : '  + str(sequence.size()['main'])
     
     if not do_all:
-        skip_the_sequence = user_yn_query('Skip this sequence?')
-        if skip_the_sequence:
-            print "Sequence skipped"
+        if not user_yn_query('Convert this sequence?'):
+            print "Sequence skipped."
             return
             
     if sequence.info('ScanningSequence') == 'SE':
@@ -59,7 +58,12 @@ def convert(data, sequence_path, do_all, interp = True):
             print '\n'
             if len(split_size) == 2:
                 print 'Calculating T2...'
-                T2_pixels = calculate_T2(sequence.split_ds)
+                t2_pixels = calculate_T2(sequence.split_ds)
+                print 'Done.'
+                print 'Converting files to MV ...'
+                make_MV_file(t2_pixels, is_t2 = True)
+                print 'Done.'
+   
             elif len(split_size) > 2:
                 print 'More than two echoes found.'
                 for block in split_size:
@@ -68,7 +72,10 @@ def convert(data, sequence_path, do_all, interp = True):
                 echo_times_to_make_into_T2 = raw_input(question)
                 time_1 = echo_times_to_make_into_T2[0]
                 time_1 = echo_times_to_make_into_T2[1]
-                T2_pixels = calculate_T2(sequence.split_ds, time_1, time_2)
+                make_MV_file(sequence)
+                make_MV_file(t2_pixels, is_t2 = True)
+                t2_pixels = calculate_T2(sequence.split_ds, time_1, time_2)
+                
                 
         if not do_all:
             question ='\nSpin Echo sequence detected. Split the sequence by Echo Time?'
@@ -82,16 +89,27 @@ def convert(data, sequence_path, do_all, interp = True):
                     print '\t\t{0}: {1} slices'.format(block, split_size[block])
             if not split_the_sequence:
                 make_concat_MV_file = user_yn_query('Convert sequence into MV wiihtout splittin?')
+                
                 if make_concat_MV:
-                    make_MV_file()
+                    make_MV_file(sequence)
                 if not make_concat_MV:
                     print "Sequence skipped"
                     return
     
-    base_name = raw_input('Enter base name for MV file. ')
     
-def make_MV_file():
-    pass
+    if sequence.info('SeriesDescription') not in naming_dict:
+        base_name = raw_input('Enter base name for MV file. ')
+        naming_dict[sequence.info('SeriesDescription') ] = base_name
+    else:
+        base_name = naming_dict[sequence.info('SeriesDescription') ]
+    
+    
+def make_MV_file(sequence, is_t2 = False):
+    if is_t2:
+        pass
+    elif not is_t2:
+        for path, dicom_file in sequence.ds:
+            print path
     
 def user_yn_query(question):
     sys.stdout.write('%s [y/n] ' % question)
@@ -108,7 +126,10 @@ if __name__ == '__main__':
     data.get_seq_list()
     
     print '\n............................................................'
-    print 'Found {0} sequence(s).'.format(len(data.seq_list))
+    print 'Found {0} sequence(s):'.format(len(data.seq_list))
+    for sequence_path in data.seq_list:
+        print sequence_path
+        
     do_all = user_yn_query('Convert all?')
     
     for sequence_path in data.seq_list:
