@@ -13,10 +13,10 @@ MedVision file structure is as follows:
     -MedVision study header (24 bytes)
         -Consists of mv_head_1 + number of slices (2 bytes) + mv_head_2
     -Slice header (10 Bytes)
-        -Consists of #Rows(2 bytes) + #Columns(2 bytes) + sl_head_part 8 or
+        -Consists of #Rows(2 bytes) + #Columns(2 bytes) + sl_head_part - 8 or
          16 bits depending on data (2 bytes) + two_zeros (2 bytes) + slice 
          number (2 bytes)
-    -Pixel data (2 bytes per pixel if 16bit, 1byte if 8bit)
+    -Pixel data (2 bytes per pixel if 16bit, 1 byte if 8bit)
     -Slice header
     -Pixel data
     -etc.    

@@ -25,6 +25,7 @@ class DicomDatasetTest(ut.TestCase):
    
     def test_dataset_has_correct_number_of_files(self):
         number_of_files = len(self.app.seq_list[test_sequence])
+        sequence = self.app.make_sequence(self.seq_dir)
         self.assertEqual(number_of_files, 50)
         
     def test_sequence_items_are_pydicom_datasets(self):
