@@ -1,10 +1,12 @@
 #!/usr/bin/python
+#! -*- coding: utf-8 -*-
+
 import os
 import unittest as ut
 
 from dataset import DicomDataset
 
-home_folder = os.path.dirname(os.getcwd())+'/test_dicom'
+home_folder = os.getcwd()+'/test_dicom'
 for root, dirs, files in os.walk(home_folder):
     if len(dirs) == 0 and files[1].endswith('.dcm'):
         test_sequence = root
@@ -26,12 +28,12 @@ class DicomDatasetTest(ut.TestCase):
     def test_dataset_has_correct_number_of_files(self):
         number_of_files = len(self.app.seq_list[test_sequence])
         sequence = self.app.make_sequence(self.seq_dir)
-        self.assertEqual(number_of_files, 50)
+        self.assertEqual(number_of_files, 26)
         
     def test_sequence_items_are_pydicom_datasets(self):
         sequence = self.app.make_sequence(self.seq_dir)
-        self.assertEqual(sequence.info('PatientID'), str(1625))
-        self.assertEqual(sequence.info(tag=[0x10, 0x10]), str(1625))
+        self.assertEqual(sequence.info('PatientID'), 'yI1Yf6zek5U')
+        self.assertEqual(sequence.info(tag=[0x10, 0x10]), 'MRIX LUMBAR')
         
     def test_sequence_size_method(self):
         sequence = self.app.make_sequence(self.seq_dir)
@@ -41,17 +43,13 @@ class DicomDatasetTest(ut.TestCase):
         
     def test_sequence_split_by_echo_time(self):
         sequence = self.app.make_sequence(self.seq_dir)
-        sequence.split('EchoTime')
+        sequence.split('InstanceNumber')
         self.assertEqual(type(sequence.split_ds), dict)
         
-    def test_sequence_split_into_two_25_slice_sequences(self):
+    def test_sequence_split_into_26_sequences(self):
         sequence = self.app.make_sequence(self.seq_dir)
-        sequence.split('EchoTime')
-        size_22 = len(sequence.split_ds['EchoTime=22'])
-        size_90 = len(sequence.split_ds['EchoTime=90'])
-        self.assertEqual(size_22, 25)
-        self.assertEqual(size_90, 25)
-        self.assertEqual(len(sequence.ds), size_22 + size_90)
+        sequence.split('InstanceNumber')
+        self.assertEqual(len(sequence.split_ds), 26)
         
 
 if __name__ == '__main__':

@@ -1,4 +1,6 @@
 #!/usr/bin/python
+#! -*- coding: utf-8 -*-
+
 import os
 import sys
 import cPickle as pickle
@@ -34,7 +36,8 @@ def convert(data, sequence_path, do_all, interp = True):
     
     sequence = data.make_sequence(sequence_path)
     print '\n............................................................'
-    print 'Subject ID            : '  + str(sequence.info('PatientName'))
+    print 'Subject Name          : '  + str(sequence.info('PatientName'))
+    print 'Subject ID            : '  + str(sequence.info('PatientID'))
     print 'Sequence Number       : '  + str(sequence.info('SeriesNumber'))
     print 'Sequence Description  : '  + str(sequence.info('SeriesDescription'))
     print 'Sequence Type         : '  + str(sequence.info('ScanningSequence'))
@@ -57,12 +60,10 @@ def convert(data, sequence_path, do_all, interp = True):
                 print '\t\t{0}: {1} slices'.format(block, split_size[block])
             print '\n'
             if len(split_size) == 2:
-                print 'Calculating T2...'
                 t2_pixels = calculate_T2(sequence.split_ds)
-                print 'Done.'
-                print 'Converting files to MV ...'
-                make_MV_file(t2_pixels, is_t2 = True)
-                print 'Done.'
+                basename = get_basename(sequence)
+                make_MV_file(t2_pixels, basename, is_t2 = True)
+
    
             elif len(split_size) > 2:
                 print 'More than two echoes found.'
@@ -72,9 +73,21 @@ def convert(data, sequence_path, do_all, interp = True):
                 echo_times_to_make_into_T2 = raw_input(question)
                 time_1 = echo_times_to_make_into_T2[0]
                 time_1 = echo_times_to_make_into_T2[1]
-                make_MV_file(sequence)
-                make_MV_file(t2_pixels, is_t2 = True)
+                basename = get_basename(sequence)
+                make_MV_file(sequence, basename)
                 t2_pixels = calculate_T2(sequence.split_ds, time_1, time_2)
+                basename = get_basename(sequence)
+                make_MV_file(t2_pixels, basename, is_t2 = True)
+                
+            elif len(split_size) == 1:
+                print 'Only one block found after split.'
+                convert_original = user_yn_query('Convert original? (if no sequence will be skipped)')
+                if convert_original:
+                    basename = get_basename(sequence)
+                    make_MV_file(sequence, basename)
+                else:
+                    print 'Sequence skipped.'
+                    return
                 
                 
         if not do_all:
@@ -88,28 +101,45 @@ def convert(data, sequence_path, do_all, interp = True):
                 for block in split_size:
                     print '\t\t{0}: {1} slices'.format(block, split_size[block])
             if not split_the_sequence:
-                make_concat_MV_file = user_yn_query('Convert sequence into MV wiihtout splittin?')
-                
+                make_concat_MV = user_yn_query('Convert sequence into MV wiihtout splittin?')
                 if make_concat_MV:
-                    make_MV_file(sequence)
+                    basename = get_basename(sequence)
+                    make_MV_file(sequence, basename)
                 if not make_concat_MV:
                     print "Sequence skipped"
                     return
-    
-    
+    basename = get_basename(sequence)
+    make_MV_file(sequence, basename)
+
+def get_basename(sequence):    
     if sequence.info('SeriesDescription') not in naming_dict:
         base_name = raw_input('Enter base name for MV file. ')
         naming_dict[sequence.info('SeriesDescription') ] = base_name
     else:
-        base_name = naming_dict[sequence.info('SeriesDescription') ]
+        base_name = naming_dict[sequence.info('SeriesDescription')]        
+    return base_name
     
     
-def make_MV_file(sequence, is_t2 = False):
+def make_MV_file(sequence, basename, is_t2 = False):
     if is_t2:
-        pass
+        print basename
     elif not is_t2:
-        for path, dicom_file in sequence.ds:
-            print path
+        slice_number = 0
+        number_of_slices = len(sequence.ds)
+        outpath = sequence.path + '/' + basename
+        open(outpath, 'a').write(mv_head_1)
+        open(outpath, 'a').write(pack('H', number_of_slices))
+        open(outpath, 'a').write(mv_head_2)
+        for i in sequence.ds:
+            open(outpath, 'a').write(pack('H', i[0].Rows))
+            open(outpath, 'a').write(pack('H', i[0].Columns))
+            open(outpath, 'a').write(sl_head_part_16bit)
+            open(outpath, 'a').write(two_zeros)
+            open(outpath, 'a').write(pack('H', slice_number))
+            with open(outpath, 'a') as f:
+                for n in i[0].pixel_array.flat:
+                    f.write(pack('H', n))
+            slice_number += 1
     
 def user_yn_query(question):
     sys.stdout.write('%s [y/n] ' % question)
