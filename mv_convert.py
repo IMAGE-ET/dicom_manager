@@ -5,7 +5,7 @@ import os
 import sys
 import cPickle as pickle
 import numpy as np
-import scipy.ndimage as scnd
+import scipy.ndimage as ndimage
 from struct import *
 from distutils.util import strtobool
 from dataset import DicomDataset
@@ -125,6 +125,7 @@ def get_basename(sequence):
 def make_MV_file(sequence, basename, is_t2 = False):
     if is_t2:
         print basename
+   
     elif not is_t2:
         slice_number = 0
         number_of_slices = len(sequence.ds)
@@ -132,27 +133,27 @@ def make_MV_file(sequence, basename, is_t2 = False):
         open(outpath, 'a').write(mv_head_1)
         open(outpath, 'a').write(pack('H', number_of_slices))
         open(outpath, 'a').write(mv_head_2)
+   
         for i in sequence.ds:
-<<<<<<< HEAD
-            open(outpath, 'a').write(pack('H', i[0].Rows))
-            open(outpath, 'a').write(pack('H', i[0].Columns))
+            rows = i[0].Rows
+            cols = i[0].Columns
+            diff = rows - cols               
+            open(outpath, 'a').write(pack('H', rows))
+            open(outpath, 'a').write(pack('H', cols + diff))
             open(outpath, 'a').write(sl_head_part_16bit)
             open(outpath, 'a').write(two_zeros)
             open(outpath, 'a').write(pack('H', slice_number))
+            
+            
+            if rows!= cols:
+                pixel_data = np.zeros((rows, rows + diff))
+                pixel_data[:, diff/2 : diff/2 + cols] = i[0].pixel_array
+            else:
+                pixel_data = i[0].pixel_array.copy()
+            
             with open(outpath, 'a') as f:
-                for n in i[0].pixel_array.flat:
-=======
-            open(outpath, 'a').write(pack('H', i[0].Rows*2))
-            open(outpath, 'a').write(pack('H', i[0].Columns*2))
-            open(outpath, 'a').write(sl_head_part_16bit)
-            open(outpath, 'a').write(two_zeros)
-            open(outpath, 'a').write(pack('H', slice_number))
-            pixel_data = i[0].pixel_array.copy()
-            pixel_data.resize(256, 256)
-            zoomed_data = scnd.interpolation.zoom(pixel_data, 2)
-            with open(outpath, 'a') as f:
-                for n in zoomed_data.flat:
->>>>>>> 5515c3d94df9848656148d89a1d43f0778c0dfa6
+                for n in pixel_data.flat:
+
                     f.write(pack('H', n))
             slice_number += 1
     

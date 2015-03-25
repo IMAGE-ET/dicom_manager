@@ -1,4 +1,4 @@
 *.pyc
 *.p
 *.dcm
-
+/test_dicom/
