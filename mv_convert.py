@@ -4,6 +4,8 @@
 import os
 import sys
 import cPickle as pickle
+import numpy as np
+import scipy.ndimage as scnd
 from struct import *
 from distutils.util import strtobool
 from dataset import DicomDataset
@@ -131,6 +133,7 @@ def make_MV_file(sequence, basename, is_t2 = False):
         open(outpath, 'a').write(pack('H', number_of_slices))
         open(outpath, 'a').write(mv_head_2)
         for i in sequence.ds:
+<<<<<<< HEAD
             open(outpath, 'a').write(pack('H', i[0].Rows))
             open(outpath, 'a').write(pack('H', i[0].Columns))
             open(outpath, 'a').write(sl_head_part_16bit)
@@ -138,6 +141,18 @@ def make_MV_file(sequence, basename, is_t2 = False):
             open(outpath, 'a').write(pack('H', slice_number))
             with open(outpath, 'a') as f:
                 for n in i[0].pixel_array.flat:
+=======
+            open(outpath, 'a').write(pack('H', i[0].Rows*2))
+            open(outpath, 'a').write(pack('H', i[0].Columns*2))
+            open(outpath, 'a').write(sl_head_part_16bit)
+            open(outpath, 'a').write(two_zeros)
+            open(outpath, 'a').write(pack('H', slice_number))
+            pixel_data = i[0].pixel_array.copy()
+            pixel_data.resize(256, 256)
+            zoomed_data = scnd.interpolation.zoom(pixel_data, 2)
+            with open(outpath, 'a') as f:
+                for n in zoomed_data.flat:
+>>>>>>> 5515c3d94df9848656148d89a1d43f0778c0dfa6
                     f.write(pack('H', n))
             slice_number += 1
     
