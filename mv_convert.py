@@ -5,7 +5,6 @@ import os
 import sys
 import cPickle as pickle
 import numpy as np
-import scipy.ndimage as ndimage
 from struct import *
 from distutils.util import strtobool
 from dataset import DicomDataset
@@ -153,7 +152,7 @@ def make_MV_file(sequence, basename, is_t2 = False):
             open(outpath, 'ab').write(pack('H', slice_number))
             
             if rows!= cols:
-                pixel_data = np.zeros((rows, cols + diff))
+                pixel_data = np.zeros((rows, cols + diff), dtype='uint16')
                 pixel_data[:, diff/2 : diff/2 + cols] = i[0].pixel_array
                 
             else:
@@ -161,8 +160,7 @@ def make_MV_file(sequence, basename, is_t2 = False):
             
             with open(outpath, 'ab') as f:
                 print 'filename:', i[1], 'sl_num:', str(slice_number)+'\n', 'array shape', pixel_data.shape
-                for n in pixel_data.flat:
-                    f.write(pack('H', n))
+                f.write(pixel_data.tostring())
             
             slice_number += 1
     
