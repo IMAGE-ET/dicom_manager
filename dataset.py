@@ -61,9 +61,9 @@ class DicomSequence(object):
                 attribute_value = getattr(ds[0], attribute) 
                 if attribute_value not in known_attribute_values:
                        known_attribute_values.append(attribute_value)
-                       split_ds[attribute+'='+str(attribute_value)] = [ds]
+                       split_ds[attribute, str(attribute_value)] = [ds]
                 elif attribute_value in known_attribute_values:
-                       split_ds[attribute+'='+str(attribute_value)].append(ds)
+                       split_ds[attribute, str(attribute_value)].append(ds)
             except:
                 print 'Attribute not found'
                 print 'Split failed!'

@@ -1,4 +1,15 @@
+<<<<<<< HEAD:.gitignore
 .DS_Store
+=======
+>>>>>>> 8ecd370d65e48ad4eff32880d9b6ec2653a54f53:.gitignore
 *.pyc
+<<<<<<< HEAD:.gitignore
+=======
+*.p
+*.dcm
+>>>>>>> 8ecd370d65e48ad4eff32880d9b6ec2653a54f53:.gitignore
 /test_dicom/*
+<<<<<<< HEAD:.gitignore
 dat
+=======
+>>>>>>> 8ecd370d65e48ad4eff32880d9b6ec2653a54f53:.gitignore

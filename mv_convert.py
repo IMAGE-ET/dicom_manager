@@ -4,35 +4,18 @@
 import os
 import sys
 import cPickle as pickle
+import numpy as np
 from struct import *
 from distutils.util import strtobool
 from dataset import DicomDataset
 from image_math import calculate_T2
 
 
-"""
-MedVision file structure is as follows:
-    -MedVision study header (24 bytes)
-        -Consists of mv_head_1 + number of slices (2 bytes) + mv_head_2
-    -Slice header (10 Bytes)
-        -Consists of #Rows(2 bytes) + #Columns(2 bytes) + sl_head_part - 8 or
-         16 bits depending on data (2 bytes) + two_zeros (2 bytes) + slice 
-         number (2 bytes)
-    -Pixel data (2 bytes per pixel if 16bit, 1 byte if 8bit)
-    -Slice header
-    -Pixel data
-    -etc.    
-"""
-
-mv_head_1 = 'MVSTUDY \x00\x00\x00x\x00\x00\x00\x18'
-mv_head_2 = '\x00\n\x00\x00\x00\x00'
-sl_head_part_8bit = ' \x01'
-sl_head_part_16bit = '\x10\x02'
-two_zeros = '\x00\x00'
 
 naming_dict = pickle.load(open('dat/naming_dict.p', 'rb'))
 
 def convert(data, sequence_path, do_all, interp = True):
+    
     
     sequence = data.make_sequence(sequence_path)
     print '\n............................................................'
@@ -59,10 +42,12 @@ def convert(data, sequence_path, do_all, interp = True):
             for block in split_size:
                 print '\t\t{0}: {1} slices'.format(block, split_size[block])
             print '\n'
+            
             if len(split_size) == 2:
-                t2_pixels = calculate_T2(sequence.split_ds)
                 basename = get_basename(sequence)
-                make_MV_file(t2_pixels, basename, is_t2 = True)
+            
+                make_MV_file(calculate_T2(sequence), basename, is_t2 = True)
+                return
 
    
             elif len(split_size) > 2:
@@ -74,10 +59,8 @@ def convert(data, sequence_path, do_all, interp = True):
                 time_1 = echo_times_to_make_into_T2[0]
                 time_1 = echo_times_to_make_into_T2[1]
                 basename = get_basename(sequence)
-                make_MV_file(sequence, basename)
-                t2_pixels = calculate_T2(sequence.split_ds, time_1, time_2)
-                basename = get_basename(sequence)
-                make_MV_file(t2_pixels, basename, is_t2 = True)
+                make_MV_file(calculate_T2(sequence, time_1, time_2), basename, is_t2 = True)
+                return
                 
             elif len(split_size) == 1:
                 print 'Only one block found after split.'
@@ -85,6 +68,7 @@ def convert(data, sequence_path, do_all, interp = True):
                 if convert_original:
                     basename = get_basename(sequence)
                     make_MV_file(sequence, basename)
+                    return
                 else:
                     print 'Sequence skipped.'
                     return
@@ -100,17 +84,23 @@ def convert(data, sequence_path, do_all, interp = True):
                 split_size = sequence.size()
                 for block in split_size:
                     print '\t\t{0}: {1} slices'.format(block, split_size[block])
+                
+                return
+                
             if not split_the_sequence:
-                make_concat_MV = user_yn_query('Convert sequence into MV wiihtout splittin?')
+                make_concat_MV = user_yn_query('Convert sequence into MV without splitting?')
                 if make_concat_MV:
                     basename = get_basename(sequence)
                     make_MV_file(sequence, basename)
+                    return
                 if not make_concat_MV:
                     print "Sequence skipped"
                     return
+    
     basename = get_basename(sequence)
     make_MV_file(sequence, basename)
-
+    return
+    
 def get_basename(sequence):    
     if sequence.info('SeriesDescription') not in naming_dict:
         base_name = raw_input('Enter base name for MV file. ')
@@ -121,24 +111,87 @@ def get_basename(sequence):
     
     
 def make_MV_file(sequence, basename, is_t2 = False):
+
+    """MedVision file structure is as follows:
+        -MedVision study header (24 bytes)
+            -Consists of mv_head_1 + number of slices (2 bytes) + mv_head_2
+        -Slice header (10 Bytes)
+            -Consists of #Rows(2 bytes) + #Columns(2 bytes) + sl_head_part - 8 or
+             16 bits depending on data (2 bytes) + two_zeros (2 bytes) + slice 
+             number (2 bytes)
+        -Pixel data (2 bytes per pixel if 16bit, 1 byte if 8bit)
+        -Slice header
+        -Pixel data
+        -etc.    
+    """
+
+    mv_head_1 = 'MVSTUDY \x00\x00\x00x\x00\x00\x00\x18'
+    mv_head_2 = '\x00\n\x00\x00\x00\x00'
+    sl_head_part_8bit = ' \x01'
+    sl_head_part_16bit = '\x10\x02'
+    two_zeros = '\x00\x00'
+
     if is_t2:
-        print basename
+    
+        slice_number = 0
+        number_of_slices = len(sequence.t2_slices)
+        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + 'T2'
+        open(outpath, 'ab').write(mv_head_1)
+        open(outpath, 'ab').write(pack('H', number_of_slices))
+        open(outpath, 'ab').write(mv_head_2)
+        
+        for slice in sequence.t2_slices:
+            rows, cols = slice.shape
+            diff = rows - cols
+            open(outpath, 'ab').write(pack('H', rows))
+            open(outpath, 'ab').write(pack('H', cols + diff))
+            open(outpath, 'ab').write(sl_head_part_16bit)
+            open(outpath, 'ab').write(two_zeros)
+            open(outpath, 'ab').write(pack('H', slice_number))
+            
+            if rows!= cols:
+                pixel_data = np.zeros((rows, cols + diff), dtype='uint16')
+                pixel_data[:, diff/2 : diff/2 + cols] = slice
+                
+            else:
+                pixel_data = slice.copy()
+                print slice_number, pixel_data.shape, pixel_data.dtype, number_of_slices
+            
+            pixel_data.dtype = 'uint16'
+            with open(outpath, 'ab') as f:
+                f.write(pixel_data.tostring())
+            
+            slice_number += 1
+            
     elif not is_t2:
         slice_number = 0
         number_of_slices = len(sequence.ds)
-        outpath = sequence.path + '/' + basename
-        open(outpath, 'a').write(mv_head_1)
-        open(outpath, 'a').write(pack('H', number_of_slices))
-        open(outpath, 'a').write(mv_head_2)
+        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename
+        open(outpath, 'ab').write(mv_head_1)
+        open(outpath, 'ab').write(pack('H', sequence.size()['main']))
+        open(outpath, 'ab').write(mv_head_2)
+   
         for i in sequence.ds:
-            open(outpath, 'a').write(pack('H', i[0].Rows))
-            open(outpath, 'a').write(pack('H', i[0].Columns))
-            open(outpath, 'a').write(sl_head_part_16bit)
-            open(outpath, 'a').write(two_zeros)
-            open(outpath, 'a').write(pack('H', slice_number))
-            with open(outpath, 'a') as f:
-                for n in i[0].pixel_array.flat:
-                    f.write(pack('H', n))
+            rows = i[0].Rows
+            cols = i[0].Columns
+            diff = rows - cols
+            open(outpath, 'ab').write(pack('H', rows))
+            open(outpath, 'ab').write(pack('H', cols + diff))
+            open(outpath, 'ab').write(sl_head_part_16bit)
+            open(outpath, 'ab').write(two_zeros)
+            open(outpath, 'ab').write(pack('H', slice_number))
+            
+            if rows!= cols:
+                pixel_data = np.zeros((rows, cols + diff), dtype='uint16')
+                pixel_data[:, diff/2 : diff/2 + cols] = i[0].pixel_array
+                
+            else:
+                pixel_data = i[0].pixel_array.copy()
+            
+            with open(outpath, 'ab') as f:
+                #print 'filename:', i[1], 'sl_num:', str(slice_number)+'\n', 'array shape', pixel_data.shape
+                f.write(pixel_data.tostring())
+            
             slice_number += 1
     
 def user_yn_query(question):
