@@ -130,12 +130,12 @@ def make_MV_file(sequence, basename, is_t2 = False):
     sl_head_part_8bit = ' \x01'
     sl_head_part_16bit = '\x10\x02'
     two_zeros = '\x00\x00'
-
+    
     if is_t2:
     
         slice_number = 0
         number_of_slices = len(sequence.t2_slices)
-        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + 'T2'
+        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + 'T2' + '(' + str(number_of_slices) + ')'
         open(outpath, 'ab').write(mv_head_1)
         open(outpath, 'ab').write(pack('H', number_of_slices))
         open(outpath, 'ab').write(mv_head_2)
@@ -155,18 +155,49 @@ def make_MV_file(sequence, basename, is_t2 = False):
                 
             else:
                 pixel_data = slice.copy()
-                print slice_number, pixel_data.shape, pixel_data.dtype, number_of_slices
             
-            pixel_data.dtype = 'uint16'
             with open(outpath, 'ab') as f:
                 f.write(pixel_data.tostring())
             
             slice_number += 1
             
+        for block in sequence.split_ds:
+            
+            slice_number = 0
+            number_of_slices = len(sequence.t2_slices)
+            outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + str(block[1]) + '(' + str(number_of_slices) + ')'
+            open(outpath, 'ab').write(mv_head_1)
+            open(outpath, 'ab').write(pack('H', number_of_slices))
+            open(outpath, 'ab').write(mv_head_2)
+            
+            for i in sequence.split_ds[block]:
+            
+                rows = i[0].Rows
+                cols = i[0].Columns
+                diff = rows - cols
+                open(outpath, 'ab').write(pack('H', rows))
+                open(outpath, 'ab').write(pack('H', cols + diff))
+                open(outpath, 'ab').write(sl_head_part_16bit)
+                open(outpath, 'ab').write(two_zeros)
+                open(outpath, 'ab').write(pack('H', slice_number))
+            
+                if rows!= cols:
+                    pixel_data = np.zeros((rows, cols + diff), dtype='uint16')
+                    pixel_data[:, diff/2 : diff/2 + cols] = i[0].pixel_array
+                
+                else:
+                    pixel_data = i[0].pixel_array.copy()
+            
+                with open(outpath, 'ab') as f:
+                    f.write(pixel_data.tostring())
+            
+                slice_number += 1
+            
+            
     elif not is_t2:
         slice_number = 0
         number_of_slices = len(sequence.ds)
-        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename
+        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + '(' + str(number_of_slices) + ')'
         open(outpath, 'ab').write(mv_head_1)
         open(outpath, 'ab').write(pack('H', sequence.size()['main']))
         open(outpath, 'ab').write(mv_head_2)
@@ -189,7 +220,6 @@ def make_MV_file(sequence, basename, is_t2 = False):
                 pixel_data = i[0].pixel_array.copy()
             
             with open(outpath, 'ab') as f:
-                #print 'filename:', i[1], 'sl_num:', str(slice_number)+'\n', 'array shape', pixel_data.shape
                 f.write(pixel_data.tostring())
             
             slice_number += 1

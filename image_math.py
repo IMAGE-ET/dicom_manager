@@ -20,15 +20,19 @@ def calculate_T2(sequence, time_1=None, time_2=None):
 	t2_seq = []
 	
 	for n in xrange(len(time_1_seq)):
-		early_echo = time_1_seq[n][0].pixel_array
-		late_echo = time_2_seq[n][0].pixel_array
-		t2 = (time_2 - time_1) / np.log(early_echo / late_echo)
+		
+		early_echo = time_1_seq[n][0].pixel_array.astype('float32')
+		late_echo = time_2_seq[n][0].pixel_array.astype('float32')
+		div = early_echo / late_echo
+		loge = np.log(div)
+		time_diff = time_2 - time_1
+		t2 = time_diff / loge
 		negative_indices = t2 < 0
 		t2[negative_indices] = 255.0
 		gt_255_indices = t2 > 255
 		t2[gt_255_indices] = 255.0
-		
+		t2 = t2.astype('uint16', order='C')
 		t2_seq.append(t2)
 		sequence.t2_slices = t2_seq
-				
+
 	return sequence
