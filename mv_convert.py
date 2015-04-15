@@ -8,7 +8,7 @@ import numpy as np
 from struct import *
 from distutils.util import strtobool
 from dataset import DicomDataset
-from image_math import calculate_T2
+from image_math import calculate_T2, pad_image_to_square, js_interpolate
 
 
 
@@ -101,6 +101,7 @@ def convert(data, sequence_path, do_all, interp = True):
     make_MV_file(sequence, basename)
     return
     
+
 def get_basename(sequence):    
     if sequence.info('SeriesDescription') not in naming_dict:
         base_name = raw_input('Enter base name for MV file. ')
@@ -111,6 +112,34 @@ def get_basename(sequence):
     
     
 def make_MV_file(sequence, basename, is_t2 = False):
+
+    if is_t2:
+
+        number_of_slices = len(sequence.t2_slices)
+        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + 'T2' + '(' + str(number_of_slices) + ')'
+        write_MV_file(sequence.t2_slices, outpath)
+        
+        inter_slices = []
+        for slice in sequence.t2_slices:
+            inter_slices.append(js_interpolate(slice))
+        print len(inter_slices)
+        write_MV_file(inter_slices, outpath+'_inter')
+            
+        for block in sequence.split_ds:
+            number_of_slices = len(sequence.split_ds[block])
+            outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + str(block[1]) + '(' + str(number_of_slices) + ')'
+            write_MV_file(sequence.split_ds[block], outpath)
+            
+            
+    elif not is_t2:
+        number_of_slices = len(sequence.ds)
+        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + '(' + str(number_of_slices) + ')'
+        write_MV_file(sequence.ds, outpath)
+        
+    return
+    
+    
+def write_MV_file(ds_list, outpath):
 
     """MedVision file structure is as follows:
         -MedVision study header (24 bytes)
@@ -131,99 +160,36 @@ def make_MV_file(sequence, basename, is_t2 = False):
     sl_head_part_16bit = '\x10\x02'
     two_zeros = '\x00\x00'
     
-    if is_t2:
+    slice_number = 0
+    number_of_slices = len(ds_list)
+    open(outpath, 'ab').write(mv_head_1)
+    open(outpath, 'ab').write(pack('H', number_of_slices))
+    open(outpath, 'ab').write(mv_head_2)
+
+    if len(ds_list[0]) == 2:
+        final_list = []
+        for i in ds_list:
+            final_list.append(i[0].pixel_array)
+                
+    else:
+        final_list = ds_list
     
-        slice_number = 0
-        number_of_slices = len(sequence.t2_slices)
-        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + 'T2' + '(' + str(number_of_slices) + ')'
-        open(outpath, 'ab').write(mv_head_1)
-        open(outpath, 'ab').write(pack('H', number_of_slices))
-        open(outpath, 'ab').write(mv_head_2)
+    for slice in final_list:
         
-        for slice in sequence.t2_slices:
-            rows, cols = slice.shape
-            diff = rows - cols
-            open(outpath, 'ab').write(pack('H', rows))
-            open(outpath, 'ab').write(pack('H', cols + diff))
-            open(outpath, 'ab').write(sl_head_part_16bit)
-            open(outpath, 'ab').write(two_zeros)
-            open(outpath, 'ab').write(pack('H', slice_number))
+        pixel_data = pad_image_to_square(slice)
+        rows, cols = slice.shape
             
-            if rows!= cols:
-                pixel_data = np.zeros((rows, cols + diff), dtype='uint16')
-                pixel_data[:, diff/2 : diff/2 + cols] = slice
-                
-            else:
-                pixel_data = slice.copy()
+        open(outpath, 'ab').write(pack('H', rows))
+        open(outpath, 'ab').write(pack('H', cols))
+        open(outpath, 'ab').write(sl_head_part_16bit)
+        open(outpath, 'ab').write(two_zeros)
+        open(outpath, 'ab').write(pack('H', slice_number))
+                       
+        with open(outpath, 'ab') as f:
+            f.write(pixel_data.tostring())
             
-            with open(outpath, 'ab') as f:
-                f.write(pixel_data.tostring())
-            
-            slice_number += 1
-            
-        for block in sequence.split_ds:
-            
-            slice_number = 0
-            number_of_slices = len(sequence.t2_slices)
-            outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + str(block[1]) + '(' + str(number_of_slices) + ')'
-            open(outpath, 'ab').write(mv_head_1)
-            open(outpath, 'ab').write(pack('H', number_of_slices))
-            open(outpath, 'ab').write(mv_head_2)
-            
-            for i in sequence.split_ds[block]:
-            
-                rows = i[0].Rows
-                cols = i[0].Columns
-                diff = rows - cols
-                open(outpath, 'ab').write(pack('H', rows))
-                open(outpath, 'ab').write(pack('H', cols + diff))
-                open(outpath, 'ab').write(sl_head_part_16bit)
-                open(outpath, 'ab').write(two_zeros)
-                open(outpath, 'ab').write(pack('H', slice_number))
-            
-                if rows!= cols:
-                    pixel_data = np.zeros((rows, cols + diff), dtype='uint16')
-                    pixel_data[:, diff/2 : diff/2 + cols] = i[0].pixel_array
-                
-                else:
-                    pixel_data = i[0].pixel_array.copy()
-            
-                with open(outpath, 'ab') as f:
-                    f.write(pixel_data.tostring())
-            
-                slice_number += 1
-            
-            
-    elif not is_t2:
-        slice_number = 0
-        number_of_slices = len(sequence.ds)
-        outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + '(' + str(number_of_slices) + ')'
-        open(outpath, 'ab').write(mv_head_1)
-        open(outpath, 'ab').write(pack('H', sequence.size()['main']))
-        open(outpath, 'ab').write(mv_head_2)
-   
-        for i in sequence.ds:
-            rows = i[0].Rows
-            cols = i[0].Columns
-            diff = rows - cols
-            open(outpath, 'ab').write(pack('H', rows))
-            open(outpath, 'ab').write(pack('H', cols + diff))
-            open(outpath, 'ab').write(sl_head_part_16bit)
-            open(outpath, 'ab').write(two_zeros)
-            open(outpath, 'ab').write(pack('H', slice_number))
-            
-            if rows!= cols:
-                pixel_data = np.zeros((rows, cols + diff), dtype='uint16')
-                pixel_data[:, diff/2 : diff/2 + cols] = i[0].pixel_array
-                
-            else:
-                pixel_data = i[0].pixel_array.copy()
-            
-            with open(outpath, 'ab') as f:
-                f.write(pixel_data.tostring())
-            
-            slice_number += 1
-    
+        slice_number += 1
+
 def user_yn_query(question):
     sys.stdout.write('%s [y/n] ' % question)
     while True:
