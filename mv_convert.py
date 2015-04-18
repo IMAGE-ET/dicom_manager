@@ -122,7 +122,6 @@ def make_MV_file(sequence, basename, is_t2 = False):
         inter_slices = []
         for slice in sequence.t2_slices:
             inter_slices.append(js_interpolate(slice))
-        print len(inter_slices)
         write_MV_file(inter_slices, outpath+'_inter')
             
         for block in sequence.split_ds:
@@ -136,6 +135,13 @@ def make_MV_file(sequence, basename, is_t2 = False):
         outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + '(' + str(number_of_slices) + ')'
         write_MV_file(sequence.ds, outpath)
         
+        inter_slices = []
+        
+        for slice in sequence.ds:
+            slice = pad_image_to_square(slice[0].pixel_array)
+            inter_slices.append(js_interpolate(slice))
+        write_MV_file(inter_slices, outpath+'_inter')
+    
     return
     
     
@@ -177,7 +183,7 @@ def write_MV_file(ds_list, outpath):
     for slice in final_list:
         
         pixel_data = pad_image_to_square(slice)
-        rows, cols = slice.shape
+        rows, cols = pixel_data.shape
             
         open(outpath, 'ab').write(pack('H', rows))
         open(outpath, 'ab').write(pack('H', cols))

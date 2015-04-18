@@ -40,26 +40,41 @@ def calculate_T2(sequence, time_1=None, time_2=None):
     
 def js_interpolate(slice):
     
-    rows, cols = slice.shape
-    xz = np.insert(slice, xrange(rows), [1]*256, axis=0)
-    y = np.transpose(xz)
-    yz = np.insert(y, xrange(cols), [1]*512, axis=0)
     
-    spaced_pixels = np.transpose(yz)
+    '''slice_y_interp = slice.copy()
     
-    return spaced_pixels    
+    for row_num in xrange(len(slice_y_interp)-1):
+        if row_num < len(slice_y_interp) - 1:
+            slice_y_interp = np.insert(slice_y_interp, 0, (slice[row_num]+ slice[row_num+1])/2, axis=0)
+        else:
+            slice_y_interp = np.insert(slice_y_interp, 0, slice[row_num] ,axis=0)
+    
+    slice_xy_interp = np.transpose(slice_y_interp)
+        
+    for row_num in xrange(len(slice_xy_interp)):
+        if row_num < len(slice_xy_interp) - 1:
+            slice_xy_interp = np.insert(slice_xy_interp, 0, (slice_y_interp[row_num]+ slice_y_interp[row_num+1])/2, axis=0)
+        else:
+            slice_xy_interp = np.insert(slice_xy_interp, 0, slice[row_num], axis=0)
+   
+    interp_slice = np.transpose(slice_xy_interp)
+    
+    
+    print interp_slice.shape
+    
+    return interp_slice'''
+    return slice
     
 def pad_image_to_square(slice):
     
     rows, cols = slice.shape
-    
     
     if rows > cols:
         diff = rows - cols
         pixel_data = np.zeros((rows, cols + diff), dtype='uint16')
         pixel_data[:, diff/2 : diff/2 + cols] = slice
         
-    if cols > rows:
+    elif cols > rows:
         diff = cols - rows
         pixel_data = np.zeros((rows + diff, cols), dtype='uint16')
         pixel_data[diff/2 : diff/2 + rows, :] = slice
@@ -67,4 +82,4 @@ def pad_image_to_square(slice):
     else:
         pixel_data = slice
         
-    return slice
+    return pixel_data
