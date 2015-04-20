@@ -40,31 +40,36 @@ def calculate_T2(sequence, time_1=None, time_2=None):
     
 def js_interpolate(slice):
     
+    rows, cols = slice.shape
     
-    '''slice_y_interp = slice.copy()
+    out = []
     
-    for row_num in xrange(len(slice_y_interp)-1):
-        if row_num < len(slice_y_interp) - 1:
-            slice_y_interp = np.insert(slice_y_interp, 0, (slice[row_num]+ slice[row_num+1])/2, axis=0)
-        else:
-            slice_y_interp = np.insert(slice_y_interp, 0, slice[row_num] ,axis=0)
+    for i in xrange(rows):
+        if i < rows - 1:
+            out.append((slice[i] + slice[i+1]) / 2)
+        if i == rows - 1:
+            out.append((np.zeros((cols))))
     
-    slice_xy_interp = np.transpose(slice_y_interp)
+    xinter = np.insert(slice, range(1, rows+1), out, axis=0)        
+    
+    yinter = np.transpose(xinter)
+    
+    rows, cols = np.transpose(xinter).shape
+    
+    out = []
+    
+    for i in xrange(rows):
+        if i < rows - 1:
+            out.append((yinter[i] + yinter[i+1]) / 2)
+        if i == rows - 1:
+            out.append((np.zeros((cols))))
+    
+    out = np.asarray(out)
+    #print xinter, '\n\n', yinter, '\n\n',np.asarray(out)
+    
+    return np.insert(xinter, range(1, len(xinter[0])+1), np.transpose(out), axis = 1)
+    
         
-    for row_num in xrange(len(slice_xy_interp)):
-        if row_num < len(slice_xy_interp) - 1:
-            slice_xy_interp = np.insert(slice_xy_interp, 0, (slice_y_interp[row_num]+ slice_y_interp[row_num+1])/2, axis=0)
-        else:
-            slice_xy_interp = np.insert(slice_xy_interp, 0, slice[row_num], axis=0)
-   
-    interp_slice = np.transpose(slice_xy_interp)
-    
-    
-    print interp_slice.shape
-    
-    return interp_slice'''
-    return slice
-    
 def pad_image_to_square(slice):
     
     rows, cols = slice.shape
