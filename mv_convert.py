@@ -129,6 +129,10 @@ def make_MV_file(sequence, basename, is_t2 = False):
             outpath = os.path.dirname(sequence.path) + '/' + str(sequence.info('SeriesNumber')) + '_' + basename + str(block[1]) + '(' + str(number_of_slices) + ')'
             write_MV_file(sequence.split_ds[block], outpath)
             
+            inter_slices = []
+            for slice in sequence.split_ds[block]:
+                inter_slices.append(js_interpolate(slice[0].pixel_array))
+            write_MV_file(inter_slices, outpath+'_inter')
             
     elif not is_t2:
         number_of_slices = len(sequence.ds)
