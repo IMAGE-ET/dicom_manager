@@ -164,17 +164,23 @@ def write_MV_file(ds_list, outpath):
         -etc.    
     """
 
-    mv_head_1 = 'MVSTUDY \x00\x00\x00x\x00\x00\x00\x18'
-    mv_head_2 = '\x00\n\x00\x00\x00\x00'
-    sl_head_part_8bit = ' \x01'
-    sl_head_part_16bit = '\x10\x02'
-    two_zeros = '\x00\x00'
+    #mv_head_1 = 'MVSTUDY \x00\x00\x00x\x00\x00\x00\x18'
+    mv_head_1 = np.asarray([77, 86, 83, 84, 85, 68, 89, 32, 0, 0, 0, 120, 0, 0, 0, 24], dtype='uint8')
+    
+    #mv_head_2 = '\x00\n\x00\x00\x00\x00'
+    mv_head_2 = np.asarray([0, 10, 0, 0, 0, 0], dtype='uint8')
+    #sl_head_part_8bit = ' \x01'
+    sl_head_part_8bit = np.asarray([32, 1], dtype='uint8')
+    #sl_head_part_16bit = '\x10\x02'
+    sl_head_part_16bit = np.asarray([16, 2], dtype='uint8')
+    #two_zeros = '\x00\x00'
+    two_zeros = np.asarray([0, 0], dtype='uint8')
     
     slice_number = 0
     number_of_slices = len(ds_list)
-    open(outpath, 'ab').write(mv_head_1)
+    open(outpath, 'ab').write(mv_head_1.tobytes())
     open(outpath, 'ab').write(pack('H', number_of_slices))
-    open(outpath, 'ab').write(mv_head_2)
+    open(outpath, 'ab').write(mv_head_2.tobytes())
 
     if len(ds_list[0]) == 2:
         final_list = []
@@ -191,12 +197,12 @@ def write_MV_file(ds_list, outpath):
             
         open(outpath, 'ab').write(pack('H', rows))
         open(outpath, 'ab').write(pack('H', cols))
-        open(outpath, 'ab').write(sl_head_part_16bit)
-        open(outpath, 'ab').write(two_zeros)
+        open(outpath, 'ab').write(sl_head_part_16bit.tobytes())
+        open(outpath, 'ab').write(two_zeros.tobytes())
         open(outpath, 'ab').write(pack('H', slice_number))
                        
         with open(outpath, 'ab') as f:
-            f.write(pixel_data.tostring())
+            f.write(pixel_data.tobytes())
             
         slice_number += 1
 
