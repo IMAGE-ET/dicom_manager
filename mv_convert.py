@@ -5,16 +5,69 @@ import os
 import sys
 import cPickle as pickle
 import numpy as np
+import nibabel as nb
 from struct import *
+from image_math import *
+from string import split
 from distutils.util import strtobool
 from dataset import DicomDataset
-from image_math import calculate_T2, pad_image_to_square, js_interpolate
-
 
 
 naming_dict = pickle.load(open('dat/naming_dict.p', 'rb'))
 
-def convert(data, sequence_path, do_all, interp = True):
+def convert_NIFTI(data, nifti_path, do_all):
+    
+    if do_all:
+        
+        for file in data.nii_list[nifti_path]:
+                
+            file_path = os.path.join(nifti_path, file)
+            img = nb.load(file_path)
+            img_data = img.get_data()
+
+            if len(img_data.shape) == 3:
+            
+                outpath = os.path.join(nifti_path, split(file, sep='.')[0])
+            
+                write_MV_file(np.transpose(np.fliplr(img_data), (2, 1, 0)), outpath)
+                inter_slices = []
+                for slice in np.transpose(np.fliplr(img_data), (2, 1, 0)):
+                    inter_slices.append(js_interpolate(slice))
+                write_MV_file(inter_slices, outpath + '_inter')
+            
+            elif len(img_data.shape) == 4 and img_data.shape[3] == 2:
+                print '2 volumes are detected in {0}'.format(file)
+                make_T2 = user_yn_query('Would you like to make a T2 image out of these?')
+                
+                outpath = os.path.join(nifti_path, split(file, sep='.')[0])
+               
+                if make_T2:
+                    question = 'Enter two echo times one for each volume (e.g. 22, 90)' 
+                    times = input(question)
+                    time_diff = int(times[1]) - int(times[0])
+                    t2_img = do_T2_math(img_data[::, ::, ::, 0], img_data[::, ::, ::, 1], time_diff)
+                    outpath = outpath + 'T2'
+                    
+                    write_MV_file(np.transpose(np.fliplr(t2_img), (2, 1, 0)), outpath)
+                    inter_slices = []
+                    for slice in np.transpose(np.fliplr(t2_img), (2, 1, 0)):
+                        inter_slices.append(js_interpolate(slice))
+                    write_MV_file(inter_slices, outpath + '_inter') 
+                
+                outpath = os.path.join(nifti_path, split(file, sep='.')[0])
+                
+                for i in xrange(img_data.shape[3]):
+                    img_data_c = img_data[::, ::, ::, i]
+                    
+                    write_MV_file(np.transpose(np.fliplr(img_data_c), (2, 1, 0)), outpath + '_' + str(i))
+                    inter_slices = []
+                    for slice in np.transpose(np.fliplr(img_data_c), (2, 1, 0)):
+                        inter_slices.append(js_interpolate(slice))
+                    write_MV_file(inter_slices, outpath + '_' + str(i) + '_inter')                
+                            
+    return
+
+def convert_DICOM(data, sequence_path, do_all, interp = True):
     
     
     sequence = data.make_sequence(sequence_path)
@@ -55,9 +108,9 @@ def convert(data, sequence_path, do_all, interp = True):
                 for block in split_size:
                     print '\t\t{0}: {1} slices'.format(block, split_size[block])
                 question = 'Enter two echo times you wish to make into T2 (e.g. 22, 90)'
-                echo_times_to_make_into_T2 = raw_input(question)
+                echo_times_to_make_into_T2 = input(question)
                 time_1 = echo_times_to_make_into_T2[0]
-                time_1 = echo_times_to_make_into_T2[1]
+                time_2 = echo_times_to_make_into_T2[1]
                 basename = get_basename(sequence)
                 make_MV_file(calculate_T2(sequence, time_1, time_2), basename, is_t2 = True)
                 return
@@ -162,24 +215,25 @@ def write_MV_file(ds_list, outpath):
         -Slice header
         -Pixel data
         -etc.    
+        MEDVISION IS BIG-ENDIAN!
     """
 
     #mv_head_1 = 'MVSTUDY \x00\x00\x00x\x00\x00\x00\x18'
-    mv_head_1 = np.asarray([77, 86, 83, 84, 85, 68, 89, 32, 0, 0, 0, 120, 0, 0, 0, 24], dtype='uint8')
+    mv_head_1 = np.asarray([77, 86, 83, 84, 85, 68, 89, 32, 0, 0, 0, 120, 0, 0, 0, 24], dtype='>i1')
     
     #mv_head_2 = '\x00\n\x00\x00\x00\x00'
-    mv_head_2 = np.asarray([0, 10, 0, 0, 0, 0], dtype='uint8')
+    mv_head_2 = np.asarray([0, 10, 0, 0, 0, 0], dtype='>i1')
     #sl_head_part_8bit = ' \x01'
-    sl_head_part_8bit = np.asarray([32, 1], dtype='uint8')
+    sl_head_part_8bit = np.asarray([32, 1], dtype='>i1')
     #sl_head_part_16bit = '\x10\x02'
-    sl_head_part_16bit = np.asarray([16, 2], dtype='uint8')
+    sl_head_part_16bit = np.asarray([16, 2], dtype='>i1')
     #two_zeros = '\x00\x00'
-    two_zeros = np.asarray([0, 0], dtype='uint8')
+    two_zeros = np.asarray([0, 0], dtype='>i1')
     
     slice_number = 0
     number_of_slices = len(ds_list)
     open(outpath, 'ab').write(mv_head_1.tobytes())
-    open(outpath, 'ab').write(pack('H', number_of_slices))
+    open(outpath, 'ab').write(pack('>H', number_of_slices))
     open(outpath, 'ab').write(mv_head_2.tobytes())
 
     if len(ds_list[0]) == 2:
@@ -195,11 +249,11 @@ def write_MV_file(ds_list, outpath):
         pixel_data = pad_image_to_square(slice)
         rows, cols = pixel_data.shape
             
-        open(outpath, 'ab').write(pack('H', rows))
-        open(outpath, 'ab').write(pack('H', cols))
+        open(outpath, 'ab').write(pack('>H', rows))
+        open(outpath, 'ab').write(pack('>H', cols))
         open(outpath, 'ab').write(sl_head_part_16bit.tobytes())
         open(outpath, 'ab').write(two_zeros.tobytes())
-        open(outpath, 'ab').write(pack('H', slice_number))
+        open(outpath, 'ab').write(pack('>H', slice_number))
                        
         with open(outpath, 'ab') as f:
             f.write(pixel_data.tobytes())
@@ -220,12 +274,25 @@ if __name__ == '__main__':
     data.ask_for_source_dir()
     data.get_seq_list()
     
-    print '\n............................................................'
-    print 'Found {0} sequence(s):'.format(len(data.seq_list))
-    for sequence_path in data.seq_list:
-        print sequence_path
+    if data.nii_list:
+        print 'Found NIFTI file(s).'
+        do_all = user_yn_query('Convert?')
         
-    do_all = user_yn_query('Convert all?')
+        for nifti_path in data.nii_list:
+            convert_NIFTI(data, nifti_path, do_all)
     
-    for sequence_path in data.seq_list:
-        convert(data, sequence_path, do_all)
+    
+    
+    print '\n............................................................\n'
+    
+    if data.seq_list:
+        print 'Found {0} DICOM sequence(s):'.format(len(data.seq_list))
+        for sequence_path in data.seq_list:
+            print sequence_path
+        
+        do_all = user_yn_query('Convert all?')
+    
+        for sequence_path in data.seq_list:
+            convert_DICOM(data, sequence_path, do_all)
+    else:
+        print 'No DICOM sequences found in specified directory.'

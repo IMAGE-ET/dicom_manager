@@ -9,7 +9,7 @@ class DicomDataset(object):
     def __init__(self, dir=''):
         self.main_dir = dir
         self.seq_list = dict()
-    
+        self.nii_list = dict()
 
     def ask_for_source_dir(self):
         if len(self.main_dir) == 0:
@@ -19,15 +19,22 @@ class DicomDataset(object):
 
     def get_seq_list(self):
         for root, dirs, files in os.walk(self.main_dir):
+            dicom_files = []
+            nifti_files = []
             if len(files) != 0:
                 for f in files:
-                    if open(os.path.join(root, f)).read()[128:132] == 'DICM':
-                        continue
+                    f_data = open(os.path.join(root, f)).read()
+                    if f_data[128:132] == 'DICM':
+                        dicom_files.append(f)
+                    elif f_data[344:347] == 'n+1' or f_data[344:347] == 'ni1' or f.endswith('.nii.gz'):
+                        nifti_files.append(f)
                     else:
-                        del files[files.index(f)]
-            
-            if len(files) != 0:
-                self.seq_list[root] = files
+                        continue
+            if dicom_files:
+                self.seq_list[root] = dicom_files
+                
+            if nifti_files:
+                self.nii_list[root] = nifti_files
 
     def make_sequence(self, root):
         return DicomSequence(root, self.seq_list[root])
@@ -47,7 +54,7 @@ class DicomSequence(object):
                 pydicom_dataset = dicom.read_file(file_path)
                 self.ds.append([pydicom_dataset, file_path])
             except dicom.filereader.InvalidDicomError:
-                continue
+                sys.exit('Invalid files found. Please clean up dicom directory')
 
     def __iter__(self):
         for i in [x[0] for x in self.ds]:
