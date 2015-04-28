@@ -5,7 +5,7 @@ import os
 import sys
 import dicom
 
-class DicomDataset(object):
+class ImageDataset(object):
     def __init__(self, dir=''):
         self.main_dir = dir
         self.seq_list = dict()
@@ -109,6 +109,6 @@ class DicomSequence(object):
                 print 'Invalid attribute.'
 
 if __name__ == '__main__':
-    app = DicomDataset()
+    app = ImageDataset()
     app.ask_for_source_dir()
     app.get_seq_list()

@@ -10,7 +10,7 @@ from struct import *
 from image_math import *
 from string import split
 from distutils.util import strtobool
-from dataset import DicomDataset
+from dataset import ImageDataset
 
 
 naming_dict = pickle.load(open('dat/naming_dict.p', 'rb'))
@@ -270,7 +270,7 @@ def user_yn_query(question):
 
 if __name__ == '__main__':
 
-    data = DicomDataset()
+    data = ImageDataset()
     data.ask_for_source_dir()
     data.get_seq_list()
     

@@ -4,7 +4,7 @@
 import os
 import unittest as ut
 
-from dataset import DicomDataset
+from dataset import ImageDataset
 
 home_folder = os.getcwd()+'/test_dicom'
 for root, dirs, files in os.walk(home_folder):
@@ -12,10 +12,10 @@ for root, dirs, files in os.walk(home_folder):
         test_sequence = root
         break
 
-class DicomDatasetTest(ut.TestCase):
+class ImageDatasetTest(ut.TestCase):
 
     def setUp(self):
-        self.app = DicomDataset(home_folder)
+        self.app = ImageDataset(home_folder)
         self.app.get_seq_list()
         self.seq_dir = test_sequence
     
