@@ -4,6 +4,10 @@
 import numpy as np
 
 def calculate_T2(sequence, time_1=None, time_2=None):
+    """Take DicomSequence object and output the same object with t2_slices
+    attribute added. t2_slices contains a list with with T2 map data stored in
+    numpy arrays for each slice.
+    """
     if time_1 == time_2 == None:
         echo_times = []
         for i in sequence.split_ds:
@@ -39,7 +43,9 @@ def calculate_T2(sequence, time_1=None, time_2=None):
     
     
 def do_T2_math(early_echo, late_echo, time_diff):
-    
+    """Takes two numpy arrays and calculates a T2 map. time_diff
+    contains TE2 - TE1. This is done one slice at a time.
+    """
     early_echo = early_echo.astype('float32')
     late_echo = late_echo.astype('float32')
     div = early_echo / late_echo
@@ -53,7 +59,10 @@ def do_T2_math(early_echo, late_echo, time_diff):
     return t2
     
 def js_interpolate(slice):
-    
+    """Takes numpy array and zoom interpolates it to twice its size.
+    This is likely bilinear interpolation, but constitutes a clone of an
+    interpolation algorithm written by Jay Fahlen.
+    """
     rows, cols = slice.shape    
     out = []
     
@@ -80,9 +89,12 @@ def js_interpolate(slice):
     
         
 def pad_image_to_square(slice):
+    """This will take a numpy array and pad with zeros either on the sides or
+    top and bottom to make the array square.
+    """
     
     rows, cols = slice.shape
-    
+        
     if rows > cols:
         diff = rows - cols
         pixel_data = np.zeros((rows, cols + diff), dtype='>i2')
