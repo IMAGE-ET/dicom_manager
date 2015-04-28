@@ -4,8 +4,9 @@
 import numpy as np
 
 def calculate_T2(sequence, time_1=None, time_2=None):
-    """Take DicomSequence object and output the same object with t2_slices
-    attribute added. t2_slices contains a list with with T2 map data stored in
+    """Take DicomSequence and output the same object with t2_slices added.
+    
+    t2_slices contains a list with with T2 map data stored in
     numpy arrays for each slice.
     """
     if time_1 == time_2 == None:
