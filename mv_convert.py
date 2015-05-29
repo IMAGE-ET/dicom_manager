@@ -24,7 +24,9 @@ def convert_NIFTI(data, nifti_path, do_all):
             file_path = os.path.join(nifti_path, file)
             img = nb.load(file_path)
             img_data = img.get_data()
-
+            if np.min(img_data) < 0:
+                print file, ' - negative values detected!!!'
+                img_data = img_data * 2 + 4096 #slope = 2, intercept = 4096
             if len(img_data.shape) == 3:
             
                 outpath = os.path.join(nifti_path, split(file, sep='.')[0])
