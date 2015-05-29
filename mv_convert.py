@@ -139,7 +139,9 @@ def convert_DICOM(data, sequence_path, do_all, interp = True):
                 split_size = sequence.size()
                 for block in split_size:
                     print '\t\t{0}: {1} slices'.format(block, split_size[block])
-                
+                basename = get_basename(sequence)
+                make_MV_file(calculate_T2(sequence), basename, is_t2 = True)
+
                 return
                 
             if not split_the_sequence:
