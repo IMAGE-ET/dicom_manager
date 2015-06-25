@@ -64,11 +64,11 @@ def convert_NIFTI(data, nifti_path, do_all):
                     for i in xrange(img_data.shape[3]):
                         img_data_c = img_data[::, ::, ::, i]
                     
-                        write_MV_file(np.transpose(np.fliplr(img_data_c), (2, 1, 0)), outpath + '_' + str(times[i]) + num_slices)
+                        write_MV_file(np.transpose(np.fliplr(img_data_c), (2, 1, 0)), outpath  + str(times[i]) + num_slices)
                         inter_slices = []
                         for slice in np.transpose(np.fliplr(img_data_c), (2, 1, 0)):
                             inter_slices.append(js_interpolate(slice))
-                        write_MV_file(inter_slices, outpath + '_' + str(times[i]) + num_slices + '_inter')
+                        write_MV_file(inter_slices, outpath + str(times[i]) + num_slices + '_inter')
                             
     return
 
