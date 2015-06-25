@@ -18,19 +18,20 @@ naming_dict = pickle.load(open('dat/naming_dict.p', 'rb'))
 def convert_NIFTI(data, nifti_path, do_all):
     
     if do_all:
-        
         for file in data.nii_list[nifti_path]:
-                
             file_path = os.path.join(nifti_path, file)
             img = nb.load(file_path)
             img_data = img.get_data()
+            
             if np.min(img_data) < 0:
                 print file, ' - negative values detected!!!'
                 img_data = img_data * 2 + 4096 #slope = 2, intercept = 4096
+
             if len(img_data.shape) == 3:
+                num_slices = img_data.shape[-1]
             
-                outpath = os.path.join(nifti_path, split(file, sep='.')[0])
-            
+                num_slices = '(' + str(num_slices) + ')'
+                outpath = os.path.join(nifti_path, split(file, sep='.')[0]) + num_slices
                 write_MV_file(np.transpose(np.fliplr(img_data), (2, 1, 0)), outpath)
                 inter_slices = []
                 for slice in np.transpose(np.fliplr(img_data), (2, 1, 0)):
@@ -38,6 +39,8 @@ def convert_NIFTI(data, nifti_path, do_all):
                 write_MV_file(inter_slices, outpath + '_inter')
             
             elif len(img_data.shape) == 4 and img_data.shape[3] == 2:
+                num_slices = img_data.shape[-2]
+                num_slices = '(' + str(num_slices) + ')'
                 print '2 volumes are detected in {0}'.format(file)
                 make_T2 = user_yn_query('Would you like to make a T2 image out of these?')
                 
@@ -50,22 +53,22 @@ def convert_NIFTI(data, nifti_path, do_all):
                     t2_img = do_T2_math(img_data[::, ::, ::, 0], img_data[::, ::, ::, 1], time_diff)
                     outpath = outpath + 'T2'
                     
-                    write_MV_file(np.transpose(np.fliplr(t2_img), (2, 1, 0)), outpath)
+                    write_MV_file(np.transpose(np.fliplr(t2_img), (2, 1, 0)), outpath + num_slices)
                     inter_slices = []
                     for slice in np.transpose(np.fliplr(t2_img), (2, 1, 0)):
                         inter_slices.append(js_interpolate(slice))
-                    write_MV_file(inter_slices, outpath + '_inter') 
+                    write_MV_file(inter_slices, outpath + num_slices + '_inter')
                 
-                outpath = os.path.join(nifti_path, split(file, sep='.')[0])
+                    outpath = os.path.join(nifti_path, split(file, sep='.')[0])
                 
-                for i in xrange(img_data.shape[3]):
-                    img_data_c = img_data[::, ::, ::, i]
+                    for i in xrange(img_data.shape[3]):
+                        img_data_c = img_data[::, ::, ::, i]
                     
-                    write_MV_file(np.transpose(np.fliplr(img_data_c), (2, 1, 0)), outpath + '_' + str(i))
-                    inter_slices = []
-                    for slice in np.transpose(np.fliplr(img_data_c), (2, 1, 0)):
-                        inter_slices.append(js_interpolate(slice))
-                    write_MV_file(inter_slices, outpath + '_' + str(i) + '_inter')                
+                        write_MV_file(np.transpose(np.fliplr(img_data_c), (2, 1, 0)), outpath + '_' + str(times[i]) + num_slices)
+                        inter_slices = []
+                        for slice in np.transpose(np.fliplr(img_data_c), (2, 1, 0)):
+                            inter_slices.append(js_interpolate(slice))
+                        write_MV_file(inter_slices, outpath + '_' + str(times[i]) + num_slices + '_inter')
                             
     return
 
