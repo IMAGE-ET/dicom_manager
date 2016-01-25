@@ -61,7 +61,7 @@ def do_T2_math(early_echo, late_echo, time_diff):
     
 def js_interpolate(slice):
     """Takes numpy array and zoom interpolates it to twice its size.
-    This is likely bilinear interpolation, but constitutes a clone of an
+    This is likely bilinear interpolation, but is a clone of an
     interpolation algorithm written by Jay Fahlen.
     """
     rows, cols = slice.shape    
